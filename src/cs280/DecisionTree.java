@@ -4,18 +4,21 @@ import java.io.*;
 import java.util.*;
 
 public class DecisionTree {
-	int numAttributes; // The number of attributes.
-	String[] attributeNames; // The names of all attributes.
-	private final int classColumn = 4; // The index of the class attribute.
-	private final String positiveClassValue = "yes";
-	private final String negativeClassValue = "no";
-	/* 
-    The attributes variable contains the possible values for each attribute.
-    For example, attributes.get(0) contains the values of the 0-th attribute.
-	 */
+	int numAttributes;
+	String[] attributeNames;
+	private int classColumn;
+	private String positiveClassValue;
+	private String negativeClassValue;
 	ArrayList<ArrayList<String>> attributes;
+	
 	Node root = new Node();
 
+	
+	public DecisionTree(int classColumn, String positiveClassValue, String negativeClassValue) {
+		this.classColumn = classColumn;
+		this.positiveClassValue = positiveClassValue;
+		this.negativeClassValue = negativeClassValue;
+	}
 	/*
     Given a set of instances and an attribute, return the 
     values of that attribute for those instances.
@@ -218,7 +221,6 @@ public class DecisionTree {
 
 		// Recursively divide children nodes.
 		// First, remove the attribute from the attribute list.
-		// ArrayList<Integer> reducedAttributeList = new ArrayList<>(attributeList);
 		attributeList.remove(new Integer(selectedAttribute));
 		for (int j = 0; j < numValues; j++) {
 			splitNode(node.children[j], attributeList);
