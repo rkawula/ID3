@@ -28,7 +28,7 @@ class Node {
 	// The constructor.
 	public Node() {
 		data = new ArrayList<Instance>();
-		entropy = 1.0;
+		entropy = 0.0;
 	}
 	
 	public double getEntropy() {
@@ -41,5 +41,9 @@ class Node {
 	
 	public ArrayList<Instance> getInstances() {
 		return data;
+	}
+	
+	public int getNumberOfInstances() {
+		return data.size();
 	}
 }

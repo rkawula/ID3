@@ -3,7 +3,7 @@ package cs280;
 /*  
     The class to represent a training instance.
  */
-class Instance {
+public class Instance {
 	
 	public String[] attributes;
 	

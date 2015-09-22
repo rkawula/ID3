@@ -106,8 +106,9 @@ public class DecisionTree {
 		int positiveOccurrences = getSubset(data, classColumn, positiveClassValue).size();
 		int negativeOccurrences = getSubset(data, classColumn, negativeClassValue).size();
 		
+		// Pure set.
 		if (positiveOccurrences < 1 || negativeOccurrences < 1) {
-			return 1;
+			return 0;
 		}
 		
 		double positive = (double) positiveOccurrences / (double) totalOccurrences;
@@ -115,29 +116,26 @@ public class DecisionTree {
 		
 		double entropy = -(positive * (Math.log(positive) / Math.log(2))
 				+ negative * (Math.log(negative) / Math.log(2)));
+		
+		System.out.println("Entropy: positive == " + positive + ", negative == " + negative + ", and entropy is " + entropy);
 		return entropy;
 
 	}
 
-	/*  
-    This function splits the specified node according to the id3 
-    algorithm.  It recursively divides all children nodes until it is 
-    not possible to divide any further.
-	 */
 	/**
-	 * 
+	 * Recursive method to split nodes into children for the greatest entropy gain.
 	 * @param node The parent node to split if it is not meant to be a leaf.
-	 * @param attributeList Remaining attributes that have not yet been split.
+	 * @param attributeList Remaining attribute columns that have not yet been split.
 	 */
 	public void splitNode(Node node, ArrayList<Integer> attributeList) {
-		// Base case, no attributes left for splitting.
+		// Base case, no attributes left to split.
 		if (attributeList.size() == 0) {
 			return;
 		}
 
-		double bestEntropy = 1.0;
+		double bestEntropy = 0.0;
 		boolean selected = false;
-		int selectedAttribute = 0;
+		int selectedAttribute = -1;
 
 		node.setEntropy(calculateEntropy(node.getInstances()));
 
@@ -152,50 +150,52 @@ public class DecisionTree {
 		// Loop over all the different attributes, skipping the class attribute.
 		for (int i = 0; i < attributeList.size(); i++) {
 			int currentColumn = attributeList.get(i);
-			if ( classColumn == currentColumn ) {
+			if (classColumn == currentColumn) {
 				continue;
 			}
-
-			// How many values does this attribute have?
-			int numValues = attributes.get(currentColumn).size();
-
-			// Loop over all the values of this attribute.
+			System.out.println("Calculating entropy for column " + currentColumn + ".");
+			
+			int potentialColumnValues = attributes.get(currentColumn).size();
+			
+			System.out.println("There are " + potentialColumnValues + " values for this column: ");
+			
+			for (String value : attributes.get(currentColumn)) {
+				System.out.println(value);
+			}
+			// Loop over all the values of this attribute (all the children that would
+			// be created if this attribute is chosen).
 			double runningEntropy = 0.0;
-			for (int j = 0; j < numValues; j++) {
-
-				// Use the getSubset function to find the instances in your 
-				// data that have value j on attribute i.
-
+			for (String currentValue : attributes.get(currentColumn)) {
+				
 				ArrayList<Instance> subsetForCurrentColumnAndValue =
-						getSubset(node.getInstances(), currentColumn, attributeNames[j]);
-
-				// Once you have the subset, make sure that there are actually
-				// elements in that subset.  If not, skip to the next value.
+						getSubset(node.getInstances(), currentColumn, currentValue);
 
 				if (subsetForCurrentColumnAndValue.isEmpty()) {
 					continue;
 				}
-				// Calculate the entropy of this subset.
-
+				
 				double currentEntropy = calculateEntropy(subsetForCurrentColumnAndValue);
-				System.out.println("Current entropy is " + currentEntropy);
-				// And add the weighted sum of the entropy to your runningEntropy. 
-				// Basically multiply the entropy by the number of things in your subset.
 
-				runningEntropy += currentEntropy * subsetForCurrentColumnAndValue.size();
+				runningEntropy += subsetForCurrentColumnAndValue.size() * currentEntropy;
 			}
-
-			// Compute the average.
-			runningEntropy = runningEntropy / (double) node.getInstances().size(); // Weighted average.
+			
+			// Gain(S, CurrentColumn) = node entropy - (childOneTotal/total)*childOneEntropy - (childTwoTotal/total)*childTwoEntropy) . . 
+			// Do Gain(S, EachRemainingColumn) until we find the largest result (means greatest drop in entropy)
+			// We did runningEntropy = childOneTotal*childOneEntropy + childTwoTotal*childTwoEntropy. . .etc
+			// Now we divide it all by size of the subset.
+			
+			runningEntropy = runningEntropy / (double) node.getInstances().size();
 			if (!selected) {
 				selected = true;
 				bestEntropy = runningEntropy;
 				selectedAttribute = currentColumn;
-				System.out.println("Selecting attribute " + selectedAttribute + ", with entropy of " + runningEntropy);
+				System.out.println("Selecting first attribute by default: " + bestEntropy);
 			} else if (runningEntropy < bestEntropy) {
 				bestEntropy = runningEntropy;
 				selectedAttribute = currentColumn;
-				System.out.println("New best entropy for the first time: " + bestEntropy);
+				System.out.println("" + selectedAttribute + " gives better entropy gain than the default: " + bestEntropy);
+			} else {
+				System.out.println("Rejected " + currentColumn + " column with entropy " + runningEntropy);
 			}
 		}
 
@@ -218,6 +218,7 @@ public class DecisionTree {
 
 		// Recursively divide children nodes.
 		// First, remove the attribute from the attribute list.
+		// ArrayList<Integer> reducedAttributeList = new ArrayList<>(attributeList);
 		attributeList.remove(new Integer(selectedAttribute));
 		for (int j = 0; j < numValues; j++) {
 			splitNode(node.children[j], attributeList);
@@ -274,11 +275,11 @@ public class DecisionTree {
 		}
 		attributeNames = new String[numAttributes];
 
-		for (int i=0; i < numAttributes; i++) {
+		for (int i = 0; i < numAttributes; i++) {
 			attributeNames[i]  = tokenizer.nextToken();
 		}
 
-		while(true) {
+		while (true) {
 			input = bin.readLine();
 			if (input == null) break;
 
