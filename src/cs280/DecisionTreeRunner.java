@@ -21,6 +21,7 @@ public class DecisionTreeRunner {
 		System.out.println("Goodbye!");
 		System.exit(0);
 	}
+	
 
 	public static boolean executeACommand(String input) {
 		if (input.equalsIgnoreCase("help") || input.equalsIgnoreCase("q")) {

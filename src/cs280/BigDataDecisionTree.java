@@ -9,6 +9,7 @@ public class BigDataDecisionTree {
 	private final int classColumn;
 	private final String positiveClassValue;
 	private final String negativeClassValue;
+	
 	ArrayList<ArrayList<String>> attributes;
 
 	Node root = new Node();
