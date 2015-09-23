@@ -132,7 +132,9 @@ public class DecisionTree {
 	 */
 	public void splitNode(Node node, ArrayList<Integer> attributeList) {
 		// Base case, no attributes left to split.
-		if (attributeList.size() == 0) {
+		// There will always be at least one attribute left in the list
+		// (the class attribute that we're training for).
+		if (attributeList.size() == 1) {
 			return;
 		}
 
@@ -235,7 +237,7 @@ public class DecisionTree {
     the output attribute.  Each subsequent line contains the values of 
     attributes for a data point.
 	 */
-	public int readData(String filename) throws Exception {
+	public int readData(String filename) throws IOException{
 
 		FileInputStream in = null;
 		try {
