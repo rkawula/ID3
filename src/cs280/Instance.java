@@ -1,7 +1,12 @@
 package cs280;
 
-/*  
-    The class to represent a training instance.
+
+/**
+ * An instance is a specific event in a big dataset. This class is used by 
+ * decision trees for reading in training events. It holds all of the values
+ * for an entry.
+ * @author Rachel Kawula rkawula@gmail.com
+ *
  */
 public class Instance {
 	

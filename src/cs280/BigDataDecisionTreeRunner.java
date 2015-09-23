@@ -4,10 +4,10 @@ import java.io.IOException;
 import java.util.Scanner;
 
 
-public class DecisionTreeRunner {
+public class BigDataDecisionTreeRunner {
 
 	public static void help() {
-		System.out.println("Welcome to Rachel's Big Data program!");
+		System.out.println("Welcome to Rachel's BIG Big Data program!");
 		System.out.println("To start, you'll need to know 4 things:");
 		System.out.println("\t1. The relative or absolute file path to your data.");
 		System.out.println("\t2. The column # that you are trying to train for (with two possible values).");
