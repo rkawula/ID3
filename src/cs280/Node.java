@@ -28,6 +28,7 @@ class Node {
 	// The constructor.
 	public Node() {
 		data = new ArrayList<Instance>();
+		splitAttribute = -1;
 	}
 	
 	public double getEntropy() {
@@ -44,5 +45,13 @@ class Node {
 	
 	public int getNumberOfInstances() {
 		return data.size();
+	}
+	
+	public Node[] getChildren() {
+		return children;
+	}
+	
+	public int getAttributeIndexForChildren() {
+		return splitAttribute;
 	}
 }

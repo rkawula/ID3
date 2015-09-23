@@ -6,14 +6,13 @@ import java.util.*;
 public class DecisionTree {
 	int numAttributes;
 	String[] attributeNames;
-	private int classColumn;
-	private String positiveClassValue;
-	private String negativeClassValue;
+	private final int classColumn;
+	private final String positiveClassValue;
+	private final String negativeClassValue;
 	ArrayList<ArrayList<String>> attributes;
-	
+
 	Node root = new Node();
 
-	
 	public DecisionTree(int classColumn, String positiveClassValue, String negativeClassValue) {
 		this.classColumn = classColumn;
 		this.positiveClassValue = positiveClassValue;
@@ -74,7 +73,7 @@ public class DecisionTree {
 				subset.add(instance);
 			}
 		}
-		
+
 		return subset;
 	}
 
@@ -108,18 +107,18 @@ public class DecisionTree {
 		// the size is our positive or negative occurrences.
 		int positiveOccurrences = getSubset(data, classColumn, positiveClassValue).size();
 		int negativeOccurrences = getSubset(data, classColumn, negativeClassValue).size();
-		
+
 		// Pure set.
 		if (positiveOccurrences < 1 || negativeOccurrences < 1) {
 			return 0;
 		}
-		
+
 		double positive = (double) positiveOccurrences / (double) totalOccurrences;
 		double negative = (double) negativeOccurrences / (double) totalOccurrences;
-		
+
 		double entropy = -(positive * (Math.log(positive) / Math.log(2))
 				+ negative * (Math.log(negative) / Math.log(2)));
-		
+
 		System.out.println("Entropy: positive == " + positive + ", negative == " + negative + ", and entropy is " + entropy);
 		return entropy;
 
@@ -159,11 +158,11 @@ public class DecisionTree {
 				continue;
 			}
 			System.out.println("Calculating entropy for column " + currentColumn + ".");
-			
+
 			int potentialColumnValues = attributes.get(currentColumn).size();
-			
+
 			System.out.println("There are " + potentialColumnValues + " values for this column: ");
-			
+
 			for (String value : attributes.get(currentColumn)) {
 				System.out.println(value);
 			}
@@ -171,24 +170,24 @@ public class DecisionTree {
 			// be created if this attribute is chosen).
 			double runningEntropy = 0.0;
 			for (String currentValue : attributes.get(currentColumn)) {
-				
+
 				ArrayList<Instance> subsetForCurrentColumnAndValue =
 						getSubset(node.getInstances(), currentColumn, currentValue);
 
 				if (subsetForCurrentColumnAndValue.isEmpty()) {
 					continue;
 				}
-				
+
 				double currentEntropy = calculateEntropy(subsetForCurrentColumnAndValue);
 
 				runningEntropy += subsetForCurrentColumnAndValue.size() * currentEntropy;
 			}
-			
+
 			// Gain(S, CurrentColumn) = node entropy - (childOneTotal/total)*childOneEntropy - (childTwoTotal/total)*childTwoEntropy) . . 
 			// Do Gain(S, EachRemainingColumn) until we find the largest result (means greatest drop in entropy)
 			// We did runningEntropy = childOneTotal*childOneEntropy + childTwoTotal*childTwoEntropy. . .etc
 			// Now we divide it all by size of the subset.
-			
+
 			runningEntropy = runningEntropy / (double) node.getInstances().size();
 			if (!selected) {
 				selected = true;
@@ -368,6 +367,90 @@ public class DecisionTree {
 		}
 		splitNode(root, splitAttributes);
 		printTree(root, "");
+	}
+	public void classifyTestData(String testData) throws IOException {
+
+		FileInputStream in;
+		File inputFile = new File(testData);
+		in = new FileInputStream(inputFile);
+
+		BufferedReader bin = new BufferedReader(new InputStreamReader(in));
+		String input = bin.readLine();
+		if (input == null) {
+			System.err.println("Empty test file!");
+		}
+		StringTokenizer tokenizer = new StringTokenizer(input);
+		int numAttributes = tokenizer.countTokens();
+
+		System.out.println("Input: " + input);
+		System.out.println("Tokenized: has " + numAttributes + " columns.");
+		int instanceCount = 0;
+
+		int correctPredictions = 0;
+
+		while (true) {
+			input = bin.readLine();
+			if (input == null) {
+				break;
+			}
+			
+			instanceCount++;
+			String[] testInstanceAttributes = new String[numAttributes];
+
+			tokenizer = new StringTokenizer(input);
+
+			int i = 0;
+			while (tokenizer.hasMoreTokens()) {
+				testInstanceAttributes[i] = tokenizer.nextToken();
+				i++;
+			}
+			
+			String thisClass = predict(testInstanceAttributes, root);
+			String actualValue = testInstanceAttributes[classColumn];
+
+			System.out.print("Test instance #" + instanceCount + ":");
+			if (thisClass.equals(actualValue)) {
+				System.out.println(" correct prediction: " + actualValue);
+				correctPredictions++;
+			} else {
+				System.out.print("\nPredicted: " + thisClass + ", ");
+				System.out.println("actual: " + actualValue);
+			}
+		}
+		System.out.println("" + correctPredictions + " instances predicted correctly, and " +
+				(instanceCount - correctPredictions) + " incorrectly classified, out of "
+						+ instanceCount + " test instances.");
+		System.out.println("Accuracy: " + correctPredictions + "/" + instanceCount + " == " + (double) correctPredictions / instanceCount);
+		in.close();
+	}
+	private String predict(String[] testInstanceAttributes, Node currentNode) {
+		String result = "";
+
+		// Leaf node.
+		int attributeForSplitting = currentNode.getAttributeIndexForChildren();
+		if (attributeForSplitting == -1) {
+			// return whatever majority class is for this node,
+			// cause this is as good as it gets.
+			result = majorityClass(currentNode.getInstances());
+		} else {
+			// figure out what attribute this node's children are split on.
+			// recurse in the child node for this instance's value of that
+			// attribute.
+			String testInstanceSplitValue = testInstanceAttributes[attributeForSplitting];
+			boolean valueFound = false;
+			for (int i = 0; i < currentNode.getChildren().length; i++) {
+				if (currentNode.getChildren()[i].splitValue.equals(testInstanceSplitValue)) {
+					valueFound = true;
+					result += predict(testInstanceAttributes, currentNode.getChildren()[i]);
+					break;
+				}
+			}
+			if (!valueFound) {
+				System.out.println("There was a problem: the value split on during testing"
+						+ " does not exist as a child node!");
+			}
+		}
+		return result;
 	}
 
 }
