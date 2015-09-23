@@ -18,10 +18,7 @@ public class DecisionTree {
 		this.positiveClassValue = positiveClassValue;
 		this.negativeClassValue = negativeClassValue;
 	}
-	/*
-    Given a set of instances and an attribute, return the 
-    values of that attribute for those instances.
-	 */
+
 	public ArrayList<String> getAllValuesInColumn(ArrayList<Instance> data, int column) {
 		ArrayList<String> values = new ArrayList<String>();
 		for (Instance instance : data) {
@@ -34,9 +31,7 @@ public class DecisionTree {
 		return values;
 	}
 
-	/*
-    Given a set of instances, return the majority class.
-	 */
+
 	public String majorityClass(ArrayList<Instance> data) {
 		HashMap<String, Integer> tracker = new HashMap<String, Integer>();
 		String majorityClass = "";
@@ -61,10 +56,7 @@ public class DecisionTree {
 		return majorityClass;
 	}
 
-	/*  
-    Returns a subset of data, in which the value of the specified attribute 
-    of all data points is the specified value.
-	 */
+
 	public ArrayList<Instance> getSubset(ArrayList<Instance> data, int column, String value) {
 		ArrayList<Instance> subset = new ArrayList<Instance>();
 
@@ -76,24 +68,6 @@ public class DecisionTree {
 
 		return subset;
 	}
-
-	/*  
-    Calculates the entropy of the set of instances.
-    Right now this function runs, but it's just giving a random number.
-    As you may suspect, this will not lead to a nice tree.
-    You'll need to figure out how to calculate entropy from 
-    the instances passed into the function.
-
-    Some tips: 
-      To access instance n : Instance foo = (Instance) data.get(n)
-      To get the value for attribute x of instance n : n.attributes[x]
-      The first attribute in our data set (attribute 0) is the class attribute,
-        It's stored in a hard-coded variable called attributeClass.
-      All the attribute values are stored in the attributes variable. To get the 
-        3rd value of the 1st attribute: attributes.get(0).get(2).  
-        The 0 is getting the first attribute, the 2 is getting the third value 
-        of that attribute.
-	 */
 
 	public double calculateEntropy(ArrayList<Instance> data) {
 		int totalOccurrences = data.size();
@@ -141,10 +115,10 @@ public class DecisionTree {
 		boolean selected = false;
 		int selectedAttribute = -1;
 
-		node.setEntropy(calculateEntropy(node.getInstances()));
+		node.entropy = calculateEntropy(node.data);
 
 		// No need to split -- this node has perfect entropy.
-		if (node.getEntropy() == 0.0) {
+		if (node.entropy == 0.0) {
 			System.out.println("Leaf with perfect entropy.");
 			return;
 		}
@@ -172,7 +146,7 @@ public class DecisionTree {
 			for (String currentValue : attributes.get(currentColumn)) {
 
 				ArrayList<Instance> subsetForCurrentColumnAndValue =
-						getSubset(node.getInstances(), currentColumn, currentValue);
+						getSubset(node.data, currentColumn, currentValue);
 
 				if (subsetForCurrentColumnAndValue.isEmpty()) {
 					continue;
@@ -188,7 +162,7 @@ public class DecisionTree {
 			// We did runningEntropy = childOneTotal*childOneEntropy + childTwoTotal*childTwoEntropy. . .etc
 			// Now we divide it all by size of the subset.
 
-			runningEntropy = runningEntropy / (double) node.getInstances().size();
+			runningEntropy = runningEntropy / (double) node.data.size();
 			if (!selected) {
 				selected = true;
 				bestEntropy = runningEntropy;
@@ -300,7 +274,7 @@ public class DecisionTree {
 			String value;
 			for (int i = 0; i < numAttributes; i++) {
 				value = tokenizer.nextToken(); 
-				point.attributes[i] = value;
+				point.setAttribute(i, value);
 				int index = attributes.get(i).indexOf(value);
 				if (index < 0) {
 					attributes.get(i).add(value);
@@ -313,12 +287,6 @@ public class DecisionTree {
 		return 1;
 
 	}
-
-	/*  
-    This function prints the decision tree in the form of rules.
-    The action part of the rule is of the form 
-      outputAttribute = "symbolicValue"
-	 */
 
 	public void printTree(Node node, String tab) {
 		int outputAttribute = classColumn;
@@ -356,10 +324,6 @@ public class DecisionTree {
 		}
 	}
 
-	/*  
-      This function creates the decision tree and prints it in the 
-      form of rules on the console.
-	 */
 	public void createDecisionTree() {
 		ArrayList<Integer> splitAttributes = new ArrayList<Integer>();
 		for(int i = 0; i < numAttributes; i++) {
@@ -368,6 +332,7 @@ public class DecisionTree {
 		splitNode(root, splitAttributes);
 		printTree(root, "");
 	}
+	
 	public void classifyTestData(String testData) throws IOException {
 
 		FileInputStream in;
@@ -426,22 +391,21 @@ public class DecisionTree {
 	private String predict(String[] testInstanceAttributes, Node currentNode) {
 		String result = "";
 
-		// Leaf node.
-		int attributeForSplitting = currentNode.getAttributeIndexForChildren();
+		int attributeForSplitting = currentNode.splitAttribute;
 		if (attributeForSplitting == -1) {
-			// return whatever majority class is for this node,
+			// Return whatever majority class is for this node,
 			// cause this is as good as it gets.
-			result = majorityClass(currentNode.getInstances());
+			result = majorityClass(currentNode.data);
 		} else {
-			// figure out what attribute this node's children are split on.
-			// recurse in the child node for this instance's value of that
+			// Figure out what attribute this node's children are split on.
+			// Recurse in the child node for this instance's value of that
 			// attribute.
 			String testInstanceSplitValue = testInstanceAttributes[attributeForSplitting];
 			boolean valueFound = false;
-			for (int i = 0; i < currentNode.getChildren().length; i++) {
-				if (currentNode.getChildren()[i].splitValue.equals(testInstanceSplitValue)) {
+			for (int i = 0; i < currentNode.children.length; i++) {
+				if (currentNode.children[i].splitValue.equals(testInstanceSplitValue)) {
 					valueFound = true;
-					result += predict(testInstanceAttributes, currentNode.getChildren()[i]);
+					result += predict(testInstanceAttributes, currentNode.children[i]);
 					break;
 				}
 			}
@@ -452,5 +416,30 @@ public class DecisionTree {
 		}
 		return result;
 	}
+
+	class Node {
+		private double entropy; 
+
+		private ArrayList<Instance> data;
+
+		// If this isn't a leaf node, the attribute used to divide the node.
+		// -1 means that this node is a leaf.
+		private int splitAttribute;
+
+		// The attribute value used to create this node.
+		// This is the value of the parent's splitAttribute that led to this
+		// node being created.
+		private String splitValue;
+
+		private Node[] children;
+		private Node parent;
+
+		Node() {
+			data = new ArrayList<Instance>();
+			splitAttribute = -1;
+		}
+
+	}
+	
 
 }

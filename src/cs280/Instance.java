@@ -5,7 +5,7 @@ package cs280;
  */
 public class Instance {
 	
-	public String[] attributes;
+	private String[] attributes;
 	
 	public Instance(int numAttributes) {
 		attributes = new String[numAttributes];
@@ -13,5 +13,9 @@ public class Instance {
 	
 	public String getAttributeInColumn(int column) {
 		return attributes[column];
+	}
+	
+	public void setAttribute(int index, String value) {
+		attributes[index] = value;
 	}
 }
