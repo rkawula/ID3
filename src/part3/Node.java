@@ -1,12 +1,15 @@
 package part3;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Set;
 
+
+/**
+ * A node for a tree that has to hold more data than can fit in the heap.
+ * It contains a mapper that handles IO.
+ * @author Rachel Kawula rkawula@gmail.com
+ *
+ */
 class Node {
 	double entropy; 
 

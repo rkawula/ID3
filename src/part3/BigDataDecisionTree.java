@@ -5,7 +5,7 @@ import java.util.*;
 
 /**
  * An ID3 tree designed to handle large amounts of data.
- * Thread-safety not tested, and does not yet use threads.
+ * NOT THREADSAFE!
  * 
  * @author Rachel Kawula rkawula@gmail.com
  *
@@ -159,13 +159,17 @@ public class BigDataDecisionTree {
 			if (pages == null) {
 				System.out.println("There were no pages to read. If you're reading"
 						+ " this, something went wrong. . .");
-				return;
+				continue;
 			}
 			
 			double runningEntropy = 0.0;
+			// Each child produced if split on this value.
 			for (String currentValue : node.getValuesForColumn(currentColumn)) {
-
-				for (int i = 0; i < pages.length; i++) {
+				for (int j = 0; j < pages.length; i++) {
+					// Compress each row in a datamapper.
+					
+					
+					
 					
 				}
 				if (subsetForCurrentColumnAndValue.isEmpty()) {
