@@ -66,7 +66,7 @@ class Node {
 	}
 	
 	public void addAndCompressData(ArrayList<String[]> data) {
-		localData = data;
+		localData.addAll(data);
 		for (String[] instance : data) {
 			dataMapper.compress(instance);
 		}

@@ -72,11 +72,21 @@ class DataMapper {
 		}
 	}
 	
-	
+	/**
+	 * Sets the names of the columns for the dataset.
+	 * @param colNames The names, from left to right, read in
+	 * from the dataset. The left-most column begins at 0.
+	 */
 	public static void setColumnNames(String[] colNames) {
 		columnNames = colNames;
 	}
 	
+	/**
+	 * Gets the label for the column in the dataset.
+	 * @param column The number for the column. Counting begins at the
+	 * left-most column, as 0.
+	 * @return The name of that column.
+	 */
 	public static String getColumnTitle(int column) {
 		return columnNames[column];
 	}
@@ -86,14 +96,33 @@ class DataMapper {
 		return keys == null ? new HashSet<String>() : keys;
 	}
 
+	/**
+	 * Determines the majority class for the node. 
+	 * @param classColumn
+	 * @param positive
+	 * @param negative
+	 * @return
+	 */
 	String getMajorityClass(int classColumn, String positive, String negative) {
-		int posFreq = valueFrequencyInColumn[classColumn].get(positive);
-		int negFreq = valueFrequencyInColumn[classColumn].get(negative);
-		// How to handle this case????? Entropy == 1.0
-		if (posFreq == negFreq) {
-			return "Tie!";
+		
+		HashMap<String, Integer> map = valueFrequencyInColumn[classColumn];
+		if (map == null || map.isEmpty()) {
+			return "Empty set?!";
 		}
-		return posFreq > negFreq ? positive : negative;
+		if (map.containsKey(positive) && map.containsKey(negative)) {
+			int posFreq = valueFrequencyInColumn[classColumn].get(positive);
+			int negFreq = valueFrequencyInColumn[classColumn].get(negative);
+			// How to handle this case????? Entropy == 1.0
+			if (posFreq == negFreq) {
+				return "Tie!";
+			}
+			return posFreq > negFreq ? positive : negative;
+		}
+		if (map.containsKey(positive)) {
+			return positive;
+		}
+		return negative;
+
 	}
 
 
