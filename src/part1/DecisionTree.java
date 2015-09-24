@@ -1,20 +1,19 @@
-package cs280;
+package part1;
 
 import java.io.*;
 import java.util.*;
 
-public class BigDataDecisionTree {
+public class DecisionTree {
 	int numAttributes;
 	String[] attributeNames;
 	private final int classColumn;
 	private final String positiveClassValue;
 	private final String negativeClassValue;
-	
 	ArrayList<ArrayList<String>> attributes;
 
 	Node root = new Node();
 
-	public BigDataDecisionTree(int classColumn, String positiveClassValue, String negativeClassValue) {
+	public DecisionTree(int classColumn, String positiveClassValue, String negativeClassValue) {
 		this.classColumn = classColumn;
 		this.positiveClassValue = positiveClassValue;
 		this.negativeClassValue = negativeClassValue;
@@ -94,6 +93,7 @@ public class BigDataDecisionTree {
 		double entropy = -(positive * (Math.log(positive) / Math.log(2))
 				+ negative * (Math.log(negative) / Math.log(2)));
 
+		System.out.println("Entropy: positive == " + positive + ", negative == " + negative + ", and entropy is " + entropy);
 		return entropy;
 
 	}
@@ -119,6 +119,7 @@ public class BigDataDecisionTree {
 
 		// No need to split -- this node has perfect entropy.
 		if (node.entropy == 0.0) {
+			System.out.println("Leaf with perfect entropy.");
 			return;
 		}
 
@@ -130,7 +131,15 @@ public class BigDataDecisionTree {
 			if (classColumn == currentColumn) {
 				continue;
 			}
+			System.out.println("Calculating entropy for column " + currentColumn + ".");
 
+			int potentialColumnValues = attributes.get(currentColumn).size();
+
+			System.out.println("There are " + potentialColumnValues + " values for this column: ");
+
+			for (String value : attributes.get(currentColumn)) {
+				System.out.println(value);
+			}
 			// Loop over all the values of this attribute (all the children that would
 			// be created if this attribute is chosen).
 			double runningEntropy = 0.0;
@@ -158,9 +167,13 @@ public class BigDataDecisionTree {
 				selected = true;
 				bestEntropy = runningEntropy;
 				selectedAttribute = currentColumn;
+				System.out.println("Selecting first attribute by default: " + bestEntropy);
 			} else if (runningEntropy < bestEntropy) {
 				bestEntropy = runningEntropy;
 				selectedAttribute = currentColumn;
+				System.out.println("" + selectedAttribute + " gives better entropy gain than the default: " + bestEntropy);
+			} else {
+				System.out.println("Rejected " + currentColumn + " column with entropy " + runningEntropy);
 			}
 		}
 
@@ -423,6 +436,6 @@ public class BigDataDecisionTree {
 		}
 
 	}
-
+	
 
 }

@@ -1,4 +1,4 @@
-package cs280;
+package part1;
 
 import java.io.IOException;
 import java.util.Scanner;
@@ -97,7 +97,7 @@ public class DecisionTreeRunner {
 			break;
 		}
 
-		BigDataDecisionTree myID3 = new BigDataDecisionTree(colNum, posVal, negVal);
+		DecisionTree myID3 = new DecisionTree(colNum, posVal, negVal);
 
 		int status = -1;
 		try {

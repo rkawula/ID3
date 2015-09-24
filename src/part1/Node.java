@@ -1,4 +1,4 @@
-package cs280;
+package part1;
 
 import java.util.ArrayList;
 

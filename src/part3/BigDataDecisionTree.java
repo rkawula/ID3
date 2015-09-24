@@ -1,26 +1,43 @@
-package cs280;
+package part3;
 
 import java.io.*;
 import java.util.*;
 
-import cs280.BigDataDecisionTree.Node;
-
-public class DecisionTree {
+/**
+ * An ID3 tree designed to handle large amounts of data.
+ * Thread-safety not tested, and does not yet use threads.
+ * 
+ * @author Rachel Kawula rkawula@gmail.com
+ *
+ */
+public class BigDataDecisionTree {
 	int numAttributes;
-	String[] attributeNames;
+	private int numNodes = 1;
 	private final int classColumn;
 	private final String positiveClassValue;
 	private final String negativeClassValue;
-	ArrayList<ArrayList<String>> attributes;
+	// attributes used to map column to possible values within that column.
+	Node root = new Node(); 
 
-	Node root = new Node();
-
-	public DecisionTree(int classColumn, String positiveClassValue, String negativeClassValue) {
+	/**
+	 * Constructs a new Big Data ID3 tree.
+	 * @param classColumn The numbers of columns (attributes) for each instance.
+	 * @param positiveClassValue The positive value for the class -- this is what we train to match.
+	 * @param negativeClassValue The negative value for the class.
+	 */
+	public BigDataDecisionTree(int classColumn, String positiveClassValue, String negativeClassValue) {
 		this.classColumn = classColumn;
 		this.positiveClassValue = positiveClassValue;
 		this.negativeClassValue = negativeClassValue;
 	}
 
+	/**
+	 * Returns all of the possible values within a specific column of data, for a specific set
+	 * of instances.
+	 * @param data The list of instances to examine.
+	 * @param column The column we are selecting values from.
+	 * @return Every value found within that column, without duplicates.
+	 */
 	public ArrayList<String> getAllValuesInColumn(ArrayList<Instance> data, int column) {
 		ArrayList<String> values = new ArrayList<String>();
 		for (Instance instance : data) {
@@ -33,48 +50,47 @@ public class DecisionTree {
 		return values;
 	}
 
+	/**
+	 * Given a set of instances, finds the most common classification for those instances.
+	 * @param data The set of instances to examine.
+	 * @return The most common class for those instances. In the case of a tie, returns "Tie!"
+	 */
+	public String majorityClass(Node node, ArrayList<String[]> data) {
 
-	public String majorityClass(ArrayList<Instance> data) {
-		HashMap<String, Integer> tracker = new HashMap<String, Integer>();
-		String majorityClass = "";
-
-		for (Instance instance : data) {
-			String value = instance.getAttributeInColumn(classColumn);
-			if (tracker.containsKey(value)) {
-				tracker.put(value, tracker.get(value) + 1);
-			} else {
-				tracker.put(value, 0);
-			}
-		}
-
-		int max = 0;
-		for (String key : tracker.keySet()) {
-			int occurrencesOfThisClass = tracker.get(key);
-			if (occurrencesOfThisClass > max) {
-				majorityClass = key;
-				max = occurrencesOfThisClass;
-			}
-		}
-		return majorityClass;
+		String result = node.getMajorityClass(classColumn, positiveClassValue, negativeClassValue);
+		return result;
 	}
 
-
-	public ArrayList<Instance> getSubset(ArrayList<Instance> data, int column, String value) {
-		ArrayList<Instance> subset = new ArrayList<Instance>();
-
-		for (Instance instance : data) {
-			if (instance.getAttributeInColumn(column).equals(value)) {
-				subset.add(instance);
+	/**
+	 * Finds all of the instances within a set of instances that have a specific value in a specific column.
+	 * It will return an empty set if no items have that value in that column.
+	 * 
+	 * @param data The set of instances to reduce.
+	 * @param column The column number to search within.
+	 * @param value The specific value that all instances must match.
+	 * @return A list of all instances that contained that value within that column.
+	 */
+	public ArrayList<String[]> getSubset(ArrayList<String[]> data, int column, String value) {
+		
+		ArrayList<String[]> subset = new ArrayList<String[]>();
+		for (int i = 0; i < data.size(); i++) {
+			String instanceValue = data.get(i)[column];
+			if (instanceValue.equals(value)) {
+				subset.add(data.get(i));
 			}
 		}
 
 		return subset;
 	}
 
-	public double calculateEntropy(ArrayList<Instance> data) {
+	/**
+	 * Calculates the entropy for a set of instances.
+	 * @param data The instances to be examined for entropy.
+	 * @return The amount of entropy in that set.
+	 */
+	public double calculateEntropy(ArrayList<String[]> data) {
 		int totalOccurrences = data.size();
 
-		// Don't calculate entropy if there is no data.
 		if (totalOccurrences == 0) {
 			return 0;
 		}
@@ -95,7 +111,6 @@ public class DecisionTree {
 		double entropy = -(positive * (Math.log(positive) / Math.log(2))
 				+ negative * (Math.log(negative) / Math.log(2)));
 
-		System.out.println("Entropy: positive == " + positive + ", negative == " + negative + ", and entropy is " + entropy);
 		return entropy;
 
 	}
@@ -106,7 +121,6 @@ public class DecisionTree {
 	 * @param attributeList Remaining attribute columns that have not yet been split.
 	 */
 	public void splitNode(Node node, ArrayList<Integer> attributeList) {
-		// Base case, no attributes left to split.
 		// There will always be at least one attribute left in the list
 		// (the class attribute that we're training for).
 		if (attributeList.size() == 1) {
@@ -117,11 +131,10 @@ public class DecisionTree {
 		boolean selected = false;
 		int selectedAttribute = -1;
 
-		node.entropy = calculateEntropy(node.data);
+		node.entropy = calculateEntropy(node.localData);
 
 		// No need to split -- this node has perfect entropy.
 		if (node.entropy == 0.0) {
-			System.out.println("Leaf with perfect entropy.");
 			return;
 		}
 
@@ -133,22 +146,14 @@ public class DecisionTree {
 			if (classColumn == currentColumn) {
 				continue;
 			}
-			System.out.println("Calculating entropy for column " + currentColumn + ".");
 
-			int potentialColumnValues = attributes.get(currentColumn).size();
-
-			System.out.println("There are " + potentialColumnValues + " values for this column: ");
-
-			for (String value : attributes.get(currentColumn)) {
-				System.out.println(value);
-			}
 			// Loop over all the values of this attribute (all the children that would
 			// be created if this attribute is chosen).
 			double runningEntropy = 0.0;
-			for (String currentValue : attributes.get(currentColumn)) {
+			for (String currentValue : node.dataMapper.getValuesFor(currentColumn)) {
 
-				ArrayList<Instance> subsetForCurrentColumnAndValue =
-						getSubset(node.data, currentColumn, currentValue);
+				ArrayList<String[]> subsetForCurrentColumnAndValue =
+						getSubset(node.localData, currentColumn, currentValue);
 
 				if (subsetForCurrentColumnAndValue.isEmpty()) {
 					continue;
@@ -164,18 +169,14 @@ public class DecisionTree {
 			// We did runningEntropy = childOneTotal*childOneEntropy + childTwoTotal*childTwoEntropy. . .etc
 			// Now we divide it all by size of the subset.
 
-			runningEntropy = runningEntropy / (double) node.data.size();
+			runningEntropy = runningEntropy / (double) node.localData.size();
 			if (!selected) {
 				selected = true;
 				bestEntropy = runningEntropy;
 				selectedAttribute = currentColumn;
-				System.out.println("Selecting first attribute by default: " + bestEntropy);
 			} else if (runningEntropy < bestEntropy) {
 				bestEntropy = runningEntropy;
 				selectedAttribute = currentColumn;
-				System.out.println("" + selectedAttribute + " gives better entropy gain than the default: " + bestEntropy);
-			} else {
-				System.out.println("Rejected " + currentColumn + " column with entropy " + runningEntropy);
 			}
 		}
 
@@ -185,14 +186,15 @@ public class DecisionTree {
 		}
 
 		// Now divide the dataset using the selected attribute.
-		int numValues = attributes.get(selectedAttribute).size();
+		String[] valuesInColumn = (String[]) node.dataMapper.getValuesFor(selectedAttribute).toArray();
+		int numValues = valuesInColumn.length;
 		node.splitAttribute = selectedAttribute;
 		node.children = new Node[numValues];
 		for (int j = 0; j < numValues; j++) {
 			node.children[j] = new Node();
 			node.children[j].parent = node;
-			String thisValue = attributes.get(selectedAttribute).get(j);
-			node.children[j].data = getSubset(node.data, selectedAttribute, thisValue);
+			String thisValue = valuesInColumn[j];
+			node.children[j].localData = getSubset(node.localData, selectedAttribute, thisValue);
 			node.children[j].splitValue = thisValue;
 		}
 
@@ -200,27 +202,43 @@ public class DecisionTree {
 		// First, remove the attribute from the attribute list.
 		attributeList.remove(new Integer(selectedAttribute));
 		for (int j = 0; j < numValues; j++) {
+			numNodes++;
 			splitNode(node.children[j], attributeList);
 		}
 	}
 
-	/* 
-    Function to read the data file.
-    The first line of the data file should contain the names of 
-    all attributes.  The number of attributes is inferred from the 
-    number of words in this line.  The last word is taken as the name of 
-    the output attribute.  Each subsequent line contains the values of 
-    attributes for a data point.
+	private FileInputStream openFile(String fileName) throws IOException {
+		FileInputStream in = null;
+		try {
+			File inputFile = new File(fileName);
+			in = new FileInputStream(inputFile);
+		} catch (Exception e) {
+			System.err.println( "Unable to open data file: " + 
+					fileName + "\n" + e);
+			throw new IOException();
+		} finally {
+			in.close();
+		}
+		return in;
+	}
+	/**
+	 * Initial transformation from the file data to Instance objects. Since we must
+	 * be able to handle large amounts of data, we can't hold all Instances in the heap
+	 * at the same time. Instead, map important statistics about this data within our
+	 * root's mapper.
+	 * @param filename The file containing our training data.
+	 * @return A status code of 0 means failure; 1 means success.
+	 * @throws IOException
 	 */
-	public int readData(String filename) throws IOException{
+	public int readData(String fileName) throws IOException {
 
 		FileInputStream in = null;
 		try {
-			File inputFile = new File(filename);
+			File inputFile = new File(fileName);
 			in = new FileInputStream(inputFile);
 		} catch ( Exception e) {
 			System.err.println( "Unable to open data file: " + 
-					filename + "\n" + e);
+					fileName + "\n" + e);
 			return 0;
 		}
 
@@ -232,7 +250,7 @@ public class DecisionTree {
 		input = bin.readLine();
 		if (input == null) {
 			System.err.println( "No data found in the data file: " + 
-					filename + "\n");
+					fileName + "\n");
 			bin.close();
 			return 0;
 		}
@@ -248,82 +266,53 @@ public class DecisionTree {
 			return 0;
 		}
 
-		attributes = new ArrayList<ArrayList<String>>();
-		for (int i = 0; i < numAttributes; i++) {
-			attributes.add(new ArrayList<String>());
-		}
-		attributeNames = new String[numAttributes];
+		// Intialize the mapper with the right number of columns.
+		root.dataMapper = new DataMapper(root, numAttributes);
 
+		// Provide the text for our column titles, for a
+		// clean output, and add it to our dataMapper.
+		String[] attNames = new String[numAttributes];
 		for (int i = 0; i < numAttributes; i++) {
-			attributeNames[i]  = tokenizer.nextToken();
+			attNames[i]  = tokenizer.nextToken();
 		}
+		root.dataMapper.setColumnNames(attNames);
 
 		while (true) {
 			input = bin.readLine();
 			if (input == null) break;
-
 			tokenizer = new StringTokenizer(input);
 			int numtokens = tokenizer.countTokens();
 			if (numtokens != numAttributes) {
-				System.err.println( "Read " + root.data.size() + " data");
+				System.err.println( "Read " + root.localData.size() + " data");
 				System.err.println( "Last line read: " + input);
 				System.err.println( "Expecting " + numAttributes  + " attributes");
 				bin.close();
 				return 0;
 			}
 
-			Instance point = new Instance(numAttributes);
-			String value;
+			String[] row = new String[numAttributes];
 			for (int i = 0; i < numAttributes; i++) {
-				value = tokenizer.nextToken(); 
-				point.setAttribute(i, value);
-				int index = attributes.get(i).indexOf(value);
-				if (index < 0) {
-					attributes.get(i).add(value);
-				}
+				row[i] = tokenizer.nextToken(); 
 			}
-			root.data.add(point);
 
+			// Send to our root's mapper.
+			root.dataMapper.compress(row);
+			// Also store it locally.
+			root.localData.add(row);
 		}
 		bin.close();
 		return 1;
-
 	}
 
-	public void printTree(Node node, String tab) {
-		int outputAttribute = classColumn;
-
-		// If we're at a leaf print out the class.
-		if (node.children == null) {
-			ArrayList<String> values = getAllValuesInColumn(node.data, outputAttribute);
-
-			// If we know the class then print it, otherwise, print the majority
-			// of the parent.
-			if (values.size() == 1) {
-				System.out.println(tab + "  " + attributeNames[outputAttribute] + 
-						" = \"" + values.get(0) + "\";");
-			} else {
-				System.out.print(tab + "  " + attributeNames[outputAttribute] + " = {");
-				System.out.print(majorityClass(node.parent.data));
-				System.out.println( " };");
-			}
-			return;
+	private int countColumns(StringTokenizer tokenizer) {
+		int tokens = tokenizer.countTokens();
+		if (numAttributes <= 1) {
+			System.err.println("Could not obtain the names of attributes.");
+			System.err.println("Expecting at least one input attribute and " +
+					"one output attribute");
+			return -1;
 		}
-
-		// If we're not at a leaf, call printTree on each child.
-		int numValues = node.children.length;
-
-		for (int i=0; i < numValues; i++) {
-			System.out.println(tab + "if ( " + 
-					attributeNames[node.splitAttribute] + " == \"" +
-					attributes.get(node.splitAttribute).get(i) + "\") {" );
-			printTree(node.children[i], tab + "  ");
-			if (i != numValues - 1 ) {
-				System.out.print(tab +  "} else ");
-			} else {
-				System.out.println(tab +  "}");
-			}
-		}
+		return tokens;
 	}
 
 	public void createDecisionTree() {
@@ -332,9 +321,8 @@ public class DecisionTree {
 			splitAttributes.add(i);
 		}
 		splitNode(root, splitAttributes);
-		printTree(root, "");
 	}
-	
+
 	public void classifyTestData(String testData) throws IOException {
 
 		FileInputStream in;
@@ -360,7 +348,7 @@ public class DecisionTree {
 			if (input == null) {
 				break;
 			}
-			
+
 			instanceCount++;
 			String[] testInstanceAttributes = new String[numAttributes];
 
@@ -371,29 +359,30 @@ public class DecisionTree {
 				testInstanceAttributes[i] = tokenizer.nextToken();
 				i++;
 			}
-			
+
 			// Recursive classifier.
 			correctPredictions += predict(testInstanceAttributes, root);
 
 		}
 		System.out.println("" + correctPredictions + " instances predicted correctly, and " +
 				(instanceCount - correctPredictions) + " incorrectly classified, out of "
-						+ instanceCount + " test instances.");
+				+ instanceCount + " test instances.");
 		System.out.println("Accuracy: " + correctPredictions + "/" + instanceCount + " == " + (double) correctPredictions / instanceCount);
 		in.close();
 	}
-	
+
 	private int predict(String[] testInstanceAttributes, Node currentNode) {
-		
+
 		int attributeForSplitting = currentNode.splitAttribute;
 		Node nextChild = new Node();
 		if (attributeForSplitting == -1) {
-			
+
 			// Return the classification count for this node,
 			// cause this is as good as it gets.
-			String result = majorityClass(currentNode.data);
+			String result = currentNode.getMajorityClass(
+					classColumn, positiveClassValue, negativeClassValue);
 			return result.equals(testInstanceAttributes[classColumn]) ? 1 : 0;
-			
+
 		} else {
 			// Figure out what attribute this node's children are split on.
 			// Recurse in the child node for this instance's value of that
@@ -415,29 +404,8 @@ public class DecisionTree {
 		return predict(testInstanceAttributes, nextChild);
 	}
 
-	class Node {
-		private double entropy; 
-
-		private ArrayList<Instance> data;
-
-		// If this isn't a leaf node, the attribute used to divide the node.
-		// -1 means that this node is a leaf.
-		private int splitAttribute;
-
-		// The attribute value used to create this node.
-		// This is the value of the parent's splitAttribute that led to this
-		// node being created.
-		private String splitValue;
-
-		private Node[] children;
-		private Node parent;
-
-		Node() {
-			data = new ArrayList<Instance>();
-			splitAttribute = -1;
-		}
-
+	public int getClassColumn() {
+		return classColumn;
 	}
-	
 
 }
