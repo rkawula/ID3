@@ -125,13 +125,13 @@ public class BigDataDecisionTree {
 		if (attributeList.size() == 1) {
 			return;
 		}
-
+		
 		double bestEntropy = 0.0;
 		boolean selected = false;
 		int selectedAttribute = -1;
-
+		
+		node.number = ++numNodes;
 		node.entropy = calculateEntropy(node.localData);
-
 		// No need to split -- this node has perfect entropy.
 		if (node.entropy == 0.0) {
 			return;
@@ -197,7 +197,9 @@ public class BigDataDecisionTree {
 			node.children[j].parent = node;
 			String thisValue = valuesInColumn[j];
 			// add subset to datamapper & compress
-			node.children[j].addAndCompressData(getSubset(node.localData, selectedAttribute, thisValue));
+			for (String[] instance : getSubset(node.localData, selectedAttribute, thisValue)) {
+				node.children[j].addAndCompressData(instance);
+			}
 			node.children[j].splitValue = thisValue;
 		}
 
@@ -205,7 +207,6 @@ public class BigDataDecisionTree {
 		// First, remove the attribute from the attribute list.
 		attributeList.remove(new Integer(selectedAttribute));
 		for (int j = 0; j < numValues; j++) {
-			numNodes++;
 			splitNode(node.children[j], attributeList);
 		}
 	}
@@ -298,11 +299,12 @@ public class BigDataDecisionTree {
 			for (int i = 0; i < numAttributes; i++) {
 				row[i] = tokenizer.nextToken(); 
 			}
-
+			//TODO: make the root add&compress too.
 			// Send to our root's mapper.
 			root.dataMapper.compress(row);
 			// Also store it locally.
 			root.localData.add(row);
+			//root.addAndCompressData(row);
 		}
 		bin.close();
 		return 1;

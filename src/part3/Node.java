@@ -10,14 +10,15 @@ import java.util.Set;
 class Node {
 	double entropy; 
 
-	// Data must now be saved to disk in order to reduce space occupied in the heap.
-	File dataOnDisk;
 	// Data temporarily loaded into the heap.
 	ArrayList<String[]> localData = new ArrayList<String[]>();
 
 	// If this isn't a leaf node, the attribute used to divide the node.
 	// -1 means that this node is a leaf.
 	int splitAttribute = -1;
+	
+	// Which node this is.
+	int number;
 
 	// The attribute value used to create this node.
 	// This is the value of the parent's splitAttribute that led to this
@@ -28,35 +29,24 @@ class Node {
 	Node parent;	
 	// Holds useful values in the heap, so you don't need to go to disk.
 	DataMapper dataMapper;
-	
+
 	Node() {
-		// Constructor for the root. Do nothing yet.
+		// Constructor for the root only!!
+		number = 1;
 	}
 
 	Node(int numAttributes) {
 		dataMapper = new DataMapper(this, numAttributes);
 	}
-
-	void writeDataToDisk(ArrayList<Instance> data, int numNodes) {
-		// Take chunks of data at a time.
-		// Append it to a growing file.
-		PrintWriter writer = null;
-		try {
-			writer = new PrintWriter("node_data/Node #" + numNodes + ".txt", "UTF-8");
-			writer.append(Instance.formatDataAsRows(data));
-		} catch (UnsupportedEncodingException e) {
-			System.err.println("Bad news when writing to file: " + e);
-		} catch (FileNotFoundException e) {
-			System.err.println("For some reason this file wasn't found. . ?" + e);
-		} finally {
-			writer.close();
-		}
+	
+	public void setNumber(int num) {
+		number = num;
 	}
 
 	public String getMajorityClass(int column, String pos, String neg) {
 		return dataMapper.getMajorityClass(column, pos, neg);
 	}
-	
+
 	public String[] getValuesForColumn(int column) {
 		Set<String> values = dataMapper.getValuesFor(column);
 		if (values.isEmpty()) {
@@ -64,12 +54,30 @@ class Node {
 		}
 		return values.toArray(new String[values.size()]);
 	}
-	
-	public void addAndCompressData(ArrayList<String[]> data) {
-		localData.addAll(data);
-		for (String[] instance : data) {
-			dataMapper.compress(instance);
+
+	public void addAndCompressData(String[] data) {
+		localData.add(data);
+		dataMapper.compress(data);
+		if (localData.size() > 5000) {
+			String fileName = dataMapper.writeDataToDisk(localData);
+			System.out.println("Paged 5000+ rows to " + fileName + ".");
+			localData.clear();
+			System.gc();
 		}
 	}
-		
+	
+	/**
+	 * Gets a list of filenames for the all of the data in this node.
+	 * @return A list of the files for this node's data. May return an
+	 * empty array if there is no data.
+	 */
+	public String[] readAllData() {
+		if (!localData.isEmpty()) {
+			dataMapper.writeDataToDisk(localData);
+			localData.clear();
+		}
+		return dataMapper.getPages();
+	}
+
+
 }

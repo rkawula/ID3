@@ -1,5 +1,6 @@
 package part3;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
@@ -20,13 +21,21 @@ import java.util.Set;
  *
  */
 class DataMapper {
-	
+
 	/**
 	 * Array of column numbers to names.
 	 */
 	static String[] columnNames;
-	
+
+	/**
+	 * The node that this datamapper belongs to, and is responsible for.
+	 */
 	Node mappedNode;
+	
+	/**
+	 * The files names that the node's data has been mapped to.
+	 */
+	ArrayList<String> pagedData = new ArrayList<String>();
 	
 	/**
 	 * Holds the number of times that this value occurred within this column,
@@ -46,7 +55,7 @@ class DataMapper {
 			valueFrequencyInColumn[i] = new HashMap<String, Integer>();
 		}
 	}
-	
+
 	/**
 	 * Given a set of attributes for this data set, the mapper will compress the
 	 * values by mapping column number to string value to frequency.
@@ -71,7 +80,7 @@ class DataMapper {
 			}
 		}
 	}
-	
+
 	/**
 	 * Sets the names of the columns for the dataset.
 	 * @param colNames The names, from left to right, read in
@@ -80,7 +89,7 @@ class DataMapper {
 	public static void setColumnNames(String[] colNames) {
 		columnNames = colNames;
 	}
-	
+
 	/**
 	 * Gets the label for the column in the dataset.
 	 * @param column The number for the column. Counting begins at the
@@ -104,7 +113,7 @@ class DataMapper {
 	 * @return
 	 */
 	String getMajorityClass(int classColumn, String positive, String negative) {
-		
+
 		HashMap<String, Integer> map = valueFrequencyInColumn[classColumn];
 		if (map == null || map.isEmpty()) {
 			return "Empty set?!";
@@ -123,6 +132,41 @@ class DataMapper {
 		}
 		return negative;
 
+	}
+
+	private static String formatDataAsRows(ArrayList<String[]> data) {
+		StringBuilder sb = new StringBuilder();
+		for (String[] row : data) {
+			for (int i = 0; i < row.length; i++) {
+				sb.append(row[i] + " ");
+			}
+			sb.append("\n");
+		}
+		return sb.toString();
+	}
+
+	String writeDataToDisk(ArrayList<String[]> data) {
+		// Take chunks of data at a time.
+		// Append it to a growing file.
+		int pageNumber = pagedData.size();
+		PrintWriter writer = null;
+		String fileName = "node_data" + File.separator + "Node" + mappedNode.number + "_part" + pageNumber + ".txt";
+		try {
+			writer = new PrintWriter(fileName, "UTF-8");
+			writer.append(formatDataAsRows(data));
+		} catch (UnsupportedEncodingException e) {
+			System.err.println("Bad news when writing to file: " + e);
+		} catch (FileNotFoundException e) {
+			System.err.println("For some reason this file wasn't found. . ?" + e);
+		} finally {
+			writer.close();
+		}
+		pagedData.add(fileName);
+		return fileName;
+	}
+	
+	String[] getPages() {
+		return pagedData.toArray(new String[pagedData.size()]);
 	}
 
 
