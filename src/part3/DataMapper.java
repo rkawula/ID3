@@ -166,7 +166,11 @@ class DataMapper {
 	}
 	
 	String[] getPages() {
-		return pagedData.toArray(new String[pagedData.size()]);
+		return pagedData.size() > 0 ? pagedData.toArray(new String[pagedData.size()]) : null;
+	}
+	
+	int getWordFrequency(int column, String value) {
+		return valueFrequencyInColumn[column].get(value);
 	}
 
 

@@ -27,8 +27,10 @@ class Node {
 
 	Node[] children;
 	Node parent;	
-	// Holds useful values in the heap, so you don't need to go to disk.
+	// Holds useful statistics in the heap, so you don't need to go to disk.
 	DataMapper dataMapper;
+	//Total instances in this node.
+	private int instances = 0;
 
 	Node() {
 		// Constructor for the root only!!
@@ -58,12 +60,13 @@ class Node {
 	public void addAndCompressData(String[] data) {
 		localData.add(data);
 		dataMapper.compress(data);
-		if (localData.size() > 5000) {
+		if (localData.size() >= 500000) {
 			String fileName = dataMapper.writeDataToDisk(localData);
-			System.out.println("Paged 5000+ rows to " + fileName + ".");
+			System.out.println("Paged 500,000 rows to " + fileName + ".");
 			localData.clear();
 			System.gc();
 		}
+		instances++;
 	}
 	
 	/**
@@ -71,12 +74,16 @@ class Node {
 	 * @return A list of the files for this node's data. May return an
 	 * empty array if there is no data.
 	 */
-	public String[] readAllData() {
+	public String[] getAllPages() {
 		if (!localData.isEmpty()) {
 			dataMapper.writeDataToDisk(localData);
 			localData.clear();
 		}
 		return dataMapper.getPages();
+	}
+	
+	public int getNumOfInstances() {
+		return instances;
 	}
 
 

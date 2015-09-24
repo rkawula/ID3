@@ -69,9 +69,11 @@ public class BigDataDecisionTree {
 	 * @param value The specific value that all instances must match.
 	 * @return A list of all instances that contained that value within that column.
 	 */
-	public ArrayList<String[]> getSubset(ArrayList<String[]> data, int column, String value) {
+	public ArrayList<String[]> getCompleteSubset(Node node, int column, String value) {
 		
 		ArrayList<String[]> subset = new ArrayList<String[]>();
+		// read from current node's disk.
+		
 		for (int i = 0; i < data.size(); i++) {
 			String instanceValue = data.get(i)[column];
 			if (instanceValue.equals(value)) {
@@ -81,31 +83,30 @@ public class BigDataDecisionTree {
 
 		return subset;
 	}
-
+	
 	/**
 	 * Calculates the entropy for a set of instances.
 	 * @param data The instances to be examined for entropy.
 	 * @return The amount of entropy in that set.
 	 */
-	public double calculateEntropy(ArrayList<String[]> data) {
-		int totalOccurrences = data.size();
-
-		if (totalOccurrences == 0) {
+	public double calculateEntropy(Node node) {
+		
+		// If there are no pages, then there is no data
+		if (node.getAllPages() == null) {
 			return 0;
 		}
 
-		// Subset of all positives or negatives from the above parameter subset;
-		// the size is our positive or negative occurrences.
-		int positiveOccurrences = getSubset(data, classColumn, positiveClassValue).size();
-		int negativeOccurrences = getSubset(data, classColumn, negativeClassValue).size();
+		// Uses main memory, not disk.
+		int positiveOccurrences = node.dataMapper.getWordFrequency(classColumn, positiveClassValue);
+		int negativeOccurrences = node.dataMapper.getWordFrequency(classColumn, negativeClassValue);
 
 		// Pure set.
 		if (positiveOccurrences < 1 || negativeOccurrences < 1) {
 			return 0;
 		}
 
-		double positive = (double) positiveOccurrences / totalOccurrences;
-		double negative = (double) negativeOccurrences / totalOccurrences;
+		double positive = (double) positiveOccurrences / node.getNumOfInstances();
+		double negative = (double) negativeOccurrences / node.getNumOfInstances();
 
 		double entropy = -(positive * (Math.log(positive) / Math.log(2))
 				+ negative * (Math.log(negative) / Math.log(2)));
@@ -131,7 +132,7 @@ public class BigDataDecisionTree {
 		int selectedAttribute = -1;
 		
 		node.number = ++numNodes;
-		node.entropy = calculateEntropy(node.localData);
+		node.entropy = calculateEntropy(node);
 		// No need to split -- this node has perfect entropy.
 		if (node.entropy == 0.0) {
 			return;
@@ -148,18 +149,30 @@ public class BigDataDecisionTree {
 
 			// Loop over all the values of this attribute (all the children that would
 			// be created if this attribute is chosen).
+			
+			// Total the entropy for that category of children, to determine best gain afterward.
+			// Don't need to write it anywhere.
+			// Read from current node's data files.
+			
+			String[] pages = node.getAllPages();
+			// Make sure there really is data to examine.
+			if (pages == null) {
+				System.out.println("There were no pages to read. If you're reading"
+						+ " this, something went wrong. . .");
+				return;
+			}
+			
 			double runningEntropy = 0.0;
 			for (String currentValue : node.getValuesForColumn(currentColumn)) {
 
-				ArrayList<String[]> subsetForCurrentColumnAndValue =
-						getSubset(node.localData, currentColumn, currentValue);
-
+				for (int i = 0; i < pages.length; i++) {
+					
+				}
 				if (subsetForCurrentColumnAndValue.isEmpty()) {
 					continue;
 				}
 
 				double currentEntropy = calculateEntropy(subsetForCurrentColumnAndValue);
-
 				runningEntropy += subsetForCurrentColumnAndValue.size() * currentEntropy;
 			}
 
@@ -197,8 +210,8 @@ public class BigDataDecisionTree {
 			node.children[j].parent = node;
 			String thisValue = valuesInColumn[j];
 			// add subset to datamapper & compress
-			for (String[] instance : getSubset(node.localData, selectedAttribute, thisValue)) {
-				node.children[j].addAndCompressData(instance);
+			for (String[] instance : getCompleteSubset(node.localData, selectedAttribute, thisValue)) {
+				node.children[j].addAndCompressData(instance);				
 			}
 			node.children[j].splitValue = thisValue;
 		}
@@ -301,9 +314,9 @@ public class BigDataDecisionTree {
 			}
 			//TODO: make the root add&compress too.
 			// Send to our root's mapper.
-			root.dataMapper.compress(row);
+			//root.dataMapper.compress(row);
 			// Also store it locally.
-			root.localData.add(row);
+			//root.localData.add(row);
 			//root.addAndCompressData(row);
 		}
 		bin.close();
@@ -388,7 +401,6 @@ public class BigDataDecisionTree {
 			String result = currentNode.getMajorityClass(
 					classColumn, positiveClassValue, negativeClassValue);
 			return result.equals(testInstanceAttributes[classColumn]) ? 1 : 0;
-
 		} else {
 			// Figure out what attribute this node's children are split on.
 			// Recurse in the child node for this instance's value of that
