@@ -357,12 +357,9 @@ public class BigDataDecisionTree {
 				i++;
 			}
 			
-			String thisClass = predict(testInstanceAttributes, root);
-			String actualValue = testInstanceAttributes[classColumn];
+			// Recursive classifier.
+			correctPredictions += predict(testInstanceAttributes, root);
 
-			if (thisClass.equals(actualValue)) {
-				correctPredictions++;
-			}
 		}
 		System.out.println("" + correctPredictions + " instances predicted correctly, and " +
 				(instanceCount - correctPredictions) + " incorrectly classified, out of "
@@ -370,14 +367,18 @@ public class BigDataDecisionTree {
 		System.out.println("Accuracy: " + correctPredictions + "/" + instanceCount + " == " + (double) correctPredictions / instanceCount);
 		in.close();
 	}
-	private String predict(String[] testInstanceAttributes, Node currentNode) {
-		String result = "";
-
+	
+	private int predict(String[] testInstanceAttributes, Node currentNode) {
+		
 		int attributeForSplitting = currentNode.splitAttribute;
+		Node nextChild = new Node();
 		if (attributeForSplitting == -1) {
-			// Return whatever majority class is for this node,
+			
+			// Return the classification count for this node,
 			// cause this is as good as it gets.
-			result = majorityClass(currentNode.data);
+			String result = majorityClass(currentNode.data);
+			return result.equals(testInstanceAttributes[classColumn]) ? 1 : 0;
+			
 		} else {
 			// Figure out what attribute this node's children are split on.
 			// Recurse in the child node for this instance's value of that
@@ -387,7 +388,7 @@ public class BigDataDecisionTree {
 			for (int i = 0; i < currentNode.children.length; i++) {
 				if (currentNode.children[i].splitValue.equals(testInstanceSplitValue)) {
 					valueFound = true;
-					result += predict(testInstanceAttributes, currentNode.children[i]);
+					nextChild = currentNode.children[i];
 					break;
 				}
 			}
@@ -396,7 +397,7 @@ public class BigDataDecisionTree {
 						+ " does not exist as a child node!");
 			}
 		}
-		return result;
+		return predict(testInstanceAttributes, nextChild);
 	}
 
 	class Node {
@@ -422,6 +423,6 @@ public class BigDataDecisionTree {
 		}
 
 	}
-	
+
 
 }
