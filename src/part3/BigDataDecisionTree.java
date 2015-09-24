@@ -38,10 +38,10 @@ public class BigDataDecisionTree {
 	 * @param column The column we are selecting values from.
 	 * @return Every value found within that column, without duplicates.
 	 */
-	public ArrayList<String> getAllValuesInColumn(ArrayList<Instance> data, int column) {
+	public ArrayList<String> getAllValuesInColumn(ArrayList<String[]> data, int column) {
 		ArrayList<String> values = new ArrayList<String>();
-		for (Instance instance : data) {
-			String value = instance.getAttributeInColumn(column);
+		for (String[] instance : data) {
+			String value = instance[column];
 			int index = values.indexOf(value);
 			if (index < 0) {
 				values.add(value);
@@ -51,12 +51,11 @@ public class BigDataDecisionTree {
 	}
 
 	/**
-	 * Given a set of instances, finds the most common classification for those instances.
+	 * Given a node, finds the most common classification for the instances in that node.
 	 * @param data The set of instances to examine.
 	 * @return The most common class for those instances. In the case of a tie, returns "Tie!"
 	 */
-	public String majorityClass(Node node, ArrayList<String[]> data) {
-
+	public String majorityClass(Node node) {
 		String result = node.getMajorityClass(classColumn, positiveClassValue, negativeClassValue);
 		return result;
 	}
@@ -150,7 +149,7 @@ public class BigDataDecisionTree {
 			// Loop over all the values of this attribute (all the children that would
 			// be created if this attribute is chosen).
 			double runningEntropy = 0.0;
-			for (String currentValue : node.dataMapper.getValuesFor(currentColumn)) {
+			for (String currentValue : node.getValuesForColumn(currentColumn)) {
 
 				ArrayList<String[]> subsetForCurrentColumnAndValue =
 						getSubset(node.localData, currentColumn, currentValue);
@@ -186,15 +185,19 @@ public class BigDataDecisionTree {
 		}
 
 		// Now divide the dataset using the selected attribute.
-		String[] valuesInColumn = (String[]) node.dataMapper.getValuesFor(selectedAttribute).toArray();
+		String[] valuesInColumn = node.getValuesForColumn(selectedAttribute);
+		if (valuesInColumn.length < 1 || "".equals(valuesInColumn[0])) {
+			return;
+		}
 		int numValues = valuesInColumn.length;
 		node.splitAttribute = selectedAttribute;
 		node.children = new Node[numValues];
 		for (int j = 0; j < numValues; j++) {
-			node.children[j] = new Node();
+			node.children[j] = new Node(numAttributes);
 			node.children[j].parent = node;
 			String thisValue = valuesInColumn[j];
-			node.children[j].localData = getSubset(node.localData, selectedAttribute, thisValue);
+			// add subset to datamapper & compress
+			node.children[j].addAndCompressData(getSubset(node.localData, selectedAttribute, thisValue));
 			node.children[j].splitValue = thisValue;
 		}
 
@@ -275,7 +278,8 @@ public class BigDataDecisionTree {
 		for (int i = 0; i < numAttributes; i++) {
 			attNames[i]  = tokenizer.nextToken();
 		}
-		root.dataMapper.setColumnNames(attNames);
+		
+		DataMapper.setColumnNames(attNames);
 
 		while (true) {
 			input = bin.readLine();

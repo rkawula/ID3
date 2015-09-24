@@ -5,6 +5,7 @@ import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -23,7 +24,7 @@ class DataMapper {
 	/**
 	 * Array of column numbers to names.
 	 */
-	String[] columnNames = new String[1];
+	static String[] columnNames;
 	
 	Node mappedNode;
 	
@@ -56,15 +57,14 @@ class DataMapper {
 	 */
 	public void compress(String[] attributes) {
 		for (int i = 0; i < valueFrequencyInColumn.length; i++) {
-			HashMap<String, Integer> currentColumn = valueFrequencyInColumn[i];
-			if (currentColumn == null) {
+			if (valueFrequencyInColumn[i] == null) {
 				valueFrequencyInColumn[i] = new HashMap<String, Integer>();
 			}
 			// If this column's value for the instance is already in our hashmap,
 			// increment the frequency. Otherwise, add it with frequency of 1.
 			String key = attributes[i];
-			if (currentColumn.containsKey(key)) {
-				int frequency = currentColumn.get(key);
+			if (valueFrequencyInColumn[i].containsKey(key)) {
+				int frequency = valueFrequencyInColumn[i].get(key);
 				valueFrequencyInColumn[i].put(key, frequency + 1);
 			} else {
 				valueFrequencyInColumn[i].put(key, 1);
@@ -73,16 +73,17 @@ class DataMapper {
 	}
 	
 	
-	public void setColumnNames(String[] columnNames) {
-		this.columnNames = columnNames;
+	public static void setColumnNames(String[] colNames) {
+		columnNames = colNames;
 	}
 	
-	public String getColumnTitle(int column) {
+	public static String getColumnTitle(int column) {
 		return columnNames[column];
 	}
 
 	public Set<String> getValuesFor(int currentColumn) {
-		return valueFrequencyInColumn[currentColumn].keySet();
+		Set<String> keys = valueFrequencyInColumn[currentColumn].keySet();
+		return keys == null ? new HashSet<String>() : keys;
 	}
 
 	String getMajorityClass(int classColumn, String positive, String negative) {

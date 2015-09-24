@@ -18,11 +18,11 @@ public class BigDataDecisionTreeRunner {
 			// If we know the class then print it, otherwise, print the majority
 			// of the parent.
 			if (values.size() == 1) {
-				System.out.println(tab + "  " + node.dataMapper.getColumnTitle(outputAttribute) + 
+				System.out.println(tab + "  " + DataMapper.getColumnTitle(outputAttribute) + 
 						" = \"" + values.get(0) + "\";");
 			} else {
-				System.out.print(tab + "  " + node.dataMapper.getColumnTitle(outputAttribute) + " = {");
-				System.out.print(tree.majorityClass(node.parent.localData));
+				System.out.print(tab + "  " +DataMapper.getColumnTitle(outputAttribute) + " = {");
+				System.out.print(tree.majorityClass(node.parent));
 				System.out.println( " };");
 			}
 			return;
@@ -32,7 +32,7 @@ public class BigDataDecisionTreeRunner {
 		int i = 0;
 		for (String attributeValue : node.dataMapper.getValuesFor(node.splitAttribute)) {
 			System.out.println(tab + "if ( " + 
-					node.dataMapper.getColumnTitle(node.splitAttribute) + " == \"" +
+					DataMapper.getColumnTitle(node.splitAttribute) + " == \"" +
 					attributeValue + "\") {" );
 			printTree(tree, node.children[i], tab + "  ");
 			if (i != numValues - 1 ) {

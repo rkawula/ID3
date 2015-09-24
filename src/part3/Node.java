@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Set;
 
 class Node {
 	double entropy; 
@@ -55,4 +56,20 @@ class Node {
 	public String getMajorityClass(int column, String pos, String neg) {
 		return dataMapper.getMajorityClass(column, pos, neg);
 	}
+	
+	public String[] getValuesForColumn(int column) {
+		Set<String> values = dataMapper.getValuesFor(column);
+		if (values.isEmpty()) {
+			return new String[] { "" };
+		}
+		return values.toArray(new String[values.size()]);
+	}
+	
+	public void addAndCompressData(ArrayList<String[]> data) {
+		localData = data;
+		for (String[] instance : data) {
+			dataMapper.compress(instance);
+		}
+	}
+		
 }
