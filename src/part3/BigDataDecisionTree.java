@@ -163,14 +163,47 @@ public class BigDataDecisionTree {
 			}
 			
 			double runningEntropy = 0.0;
+			
+			// Should I make a cache of the mappings (positives/negatives) for this column?
+			// Not writing to disk yet.
+			
 			// Each child produced if split on this value.
 			for (String currentValue : node.getValuesForColumn(currentColumn)) {
+				int posInstances = 0;
 				for (int j = 0; j < pages.length; i++) {
-					// Compress each row in a datamapper.
-					
-					
-					
-					
+					// Make a file reader, and a string tokenizer.
+					// Open the current page of the parent with the file reader.
+					FileInputStream in;
+					// error handle for file we can't read/write/doesn't exist
+					File inputFile = new File(pages[j]);
+					in = new FileInputStream(inputFile);
+
+					BufferedReader bin = new BufferedReader(new InputStreamReader(in));
+					String input = bin.readLine();
+					if (input == null) {
+						System.err.println("Empty node file!");
+					}
+					StringTokenizer tokenizer;
+					while (true) {
+						input = bin.readLine();
+						// EOF
+						if (input == null) {
+							break;
+						}
+						// If the current column didn't match the value we want, continue.
+
+						tokenizer = new StringTokenizer(input);
+
+						int tokenCount = tokenizer.countTokens();
+						for (int i = 0; i < tokenCount; i++) {
+							if (tokenizer.nextToken();
+						}
+					// Each line that matches value in column gets checked
+					// for positive/negatve.
+					//for (line in pages[j]) {
+						// if matches value in column && matches pos class
+						// 	posInstances++; 
+					//}											
 				}
 				if (subsetForCurrentColumnAndValue.isEmpty()) {
 					continue;
@@ -228,20 +261,6 @@ public class BigDataDecisionTree {
 		}
 	}
 
-	private FileInputStream openFile(String fileName) throws IOException {
-		FileInputStream in = null;
-		try {
-			File inputFile = new File(fileName);
-			in = new FileInputStream(inputFile);
-		} catch (Exception e) {
-			System.err.println( "Unable to open data file: " + 
-					fileName + "\n" + e);
-			throw new IOException();
-		} finally {
-			in.close();
-		}
-		return in;
-	}
 	/**
 	 * Initial transformation from the file data to Instance objects. Since we must
 	 * be able to handle large amounts of data, we can't hold all Instances in the heap
@@ -325,17 +344,6 @@ public class BigDataDecisionTree {
 		}
 		bin.close();
 		return 1;
-	}
-
-	private int countColumns(StringTokenizer tokenizer) {
-		int tokens = tokenizer.countTokens();
-		if (numAttributes <= 1) {
-			System.err.println("Could not obtain the names of attributes.");
-			System.err.println("Expecting at least one input attribute and " +
-					"one output attribute");
-			return -1;
-		}
-		return tokens;
 	}
 
 	public void createDecisionTree() {
